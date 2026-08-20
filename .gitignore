@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Reconstruction inputs and generated artifacts
+*.mp4
+*.mov
+*.mkv
+*.avi
+results/
+frames/
+processed/
+reconstruction/
+*.ply
+
