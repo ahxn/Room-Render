@@ -55,3 +55,10 @@ results/living-room/
 Raw videos, extracted frames, reconstructions, and large `.ply` files are ignored
 by Git.
 
+## Running tests
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m unittest discover -s tests -v
+```
+
