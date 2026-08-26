@@ -1,14 +1,13 @@
 """Video inspection, validation, and frame-sampling helpers."""
 
-from dataclasses import asdict, dataclass
 import json
-from pathlib import Path
 import subprocess
+from dataclasses import asdict, dataclass
+from pathlib import Path
 
 from .commands import require_command
 from .config import VideoConfig
 from .errors import InputValidationError
-
 
 SUPPORTED_SUFFIXES = {".mp4", ".mov", ".mkv", ".avi", ".m4v"}
 
@@ -66,8 +65,7 @@ def probe_video(path: Path) -> VideoMetadata:
             str(path),
         ],
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
     )
     if completed.returncode != 0:
@@ -107,4 +105,3 @@ def sampling_rate(duration_seconds: float, target_frame_count: int) -> float:
     if duration_seconds <= 0 or target_frame_count <= 0:
         raise ValueError("Duration and target frame count must be positive")
     return target_frame_count / duration_seconds
-

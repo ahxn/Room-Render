@@ -1,13 +1,12 @@
 """Safe, logged execution of external reconstruction tools."""
 
-from collections.abc import Sequence
 import logging
-from pathlib import Path
 import shutil
 import subprocess
+from collections.abc import Sequence
+from pathlib import Path
 
 from .errors import CommandUnavailableError, ExternalCommandError
-
 
 REQUIRED_COMMANDS = ("ffmpeg", "ffprobe", "ns-process-data", "ns-train", "ns-viewer")
 
@@ -55,4 +54,3 @@ def run_command(
             "See the processing log for command output."
         )
     return completed
-

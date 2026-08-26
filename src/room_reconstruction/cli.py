@@ -2,9 +2,9 @@
 
 import argparse
 import logging
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 from .commands import command_availability, require_command
 from .errors import ReconstructionError
@@ -62,4 +62,3 @@ def main(argv: list[str] | None = None) -> int:
         logging.getLogger(__name__).debug("Command failed", exc_info=True)
         print(f"error: {exc}", file=sys.stderr)
         return 2
-

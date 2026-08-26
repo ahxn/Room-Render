@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Turn a handheld room video into a Gaussian-splat reconstruction."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "Allen" }]
 dependencies = []
 
@@ -29,4 +29,3 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-

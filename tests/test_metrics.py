@@ -29,6 +29,7 @@ class MetricsTests(unittest.TestCase):
 
     def test_registration_rate_rejects_inconsistent_counts(self) -> None:
         for registered, selected in [(-1, 2), (3, 2), (0, 0)]:
-            with self.subTest(registered=registered, selected=selected):
-                with self.assertRaises(ValueError):
-                    registration_rate(registered, selected)
+            with self.subTest(registered=registered, selected=selected), self.assertRaises(
+                ValueError
+            ):
+                registration_rate(registered, selected)
