@@ -6,7 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from .commands import command_availability, require_command
+from .commands import require_command
+from .environment import check_environment
 from .errors import ReconstructionError
 from .pipeline import find_training_config, run_pipeline
 
@@ -33,29 +34,36 @@ def build_parser() -> argparse.ArgumentParser:
         dest="open_result",
         help="Open an existing result with ns-viewer instead of reconstructing",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Reuse completed frames, camera processing, and training artifacts",
+    )
     return parser
 
 
 def _check_environment() -> int:
-    availability = command_availability()
-    for command, available in availability.items():
-        print(f"{'OK' if available else 'MISSING':7} {command}")
-    return 0 if all(availability.values()) else 1
+    checks = check_environment()
+    for check in checks:
+        print(f"{'OK' if check.available else 'FAILED':7} {check.name:25} {check.detail}")
+    return 0 if all(check.available for check in checks) else 1
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.check_environment:
         return _check_environment()
-    if args.video is None or args.output is None:
-        build_parser().error("video and --output are required unless --check-environment is used")
+    if args.output is None:
+        build_parser().error("--output is required unless --check-environment is used")
+    if args.video is None and not args.open_result:
+        build_parser().error("video is required unless --check-environment or --open is used")
 
     try:
         if args.open_result:
             require_command("ns-viewer")
             config_path = find_training_config(args.output)
             return subprocess.run(["ns-viewer", "--load-config", str(config_path)], check=False).returncode
-        run_pipeline(args.video, args.output, dry_run=args.dry_run)
+        run_pipeline(args.video, args.output, dry_run=args.dry_run, resume=args.resume)
         print(f"Run metadata: {args.output / 'metadata.json'}")
         return 0
     except (ReconstructionError, FileNotFoundError) as exc:

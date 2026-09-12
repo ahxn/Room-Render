@@ -1,7 +1,9 @@
 """Safe, logged execution of external reconstruction tools."""
 
 import logging
+import os
 import shutil
+import signal
 import subprocess
 from collections.abc import Sequence
 from pathlib import Path
@@ -37,20 +39,46 @@ def run_command(
         return None
 
     require_command(args[0])
-    completed = subprocess.run(
+    creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+    process = subprocess.Popen(
         list(args),
         cwd=cwd,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        check=False,
+        bufsize=1,
+        start_new_session=os.name != "nt",
+        creationflags=creation_flags,
     )
-    if completed.stdout:
-        for line in completed.stdout.splitlines():
+    output: list[str] = []
+    try:
+        assert process.stdout is not None
+        for line in process.stdout:
+            line = line.rstrip("\r\n")
+            output.append(line)
             logger.info("[%s] %s", args[0], line)
-    if completed.returncode != 0:
+        return_code = process.wait()
+    except KeyboardInterrupt:
+        logger.warning("Interrupting '%s' and cleaning up its child process", args[0])
+        if process.poll() is None:
+            if os.name == "nt":
+                process.send_signal(signal.CTRL_BREAK_EVENT)
+            else:
+                os.killpg(process.pid, signal.SIGINT)
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                if os.name == "nt":
+                    process.kill()
+                else:
+                    os.killpg(process.pid, signal.SIGKILL)
+                process.wait()
+        raise
+
+    completed = subprocess.CompletedProcess(list(args), return_code, "\n".join(output))
+    if return_code != 0:
         raise ExternalCommandError(
-            f"'{args[0]}' failed with exit code {completed.returncode}. "
+            f"'{args[0]}' failed with exit code {return_code}. "
             "See the processing log for command output."
         )
     return completed

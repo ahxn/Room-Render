@@ -28,7 +28,14 @@ python reconstruct.py room.mp4 --output results/living-room --dry-run
 Open a completed reconstruction:
 
 ```powershell
-python reconstruct.py room.mp4 --output results/living-room --open
+python reconstruct.py --output results/living-room --open
+```
+
+Resume after a failed or interrupted stage. Existing frames, camera poses, and
+completed checkpoints are detected and reused:
+
+```powershell
+python reconstruct.py room.mp4 --output results/living-room --resume
 ```
 
 ## Prerequisites
@@ -38,7 +45,8 @@ python reconstruct.py room.mp4 --output results/living-room --open
 - Nerfstudio with a compatible PyTorch/CUDA environment (`ns-process-data`,
   `ns-train`, and `ns-viewer` on `PATH`)
 
-Run `python reconstruct.py --check-environment` to inspect command availability.
+Run `python reconstruct.py --check-environment` to inspect command availability
+and exercise the installed OpenCV, NumPy, PyTorch, CUDA, and Nerfstudio runtime.
 
 ## Verified Windows/WSL setup
 
@@ -104,6 +112,15 @@ cd "/mnt/c/Users/allen/Documents/ChatGPT/Room Reconstruction"
 python reconstruct.py --check-environment
 ```
 
+For a new or repaired environment, the repository also contains a repeatable
+setup script. It preserves the known-good OpenCV 4.9 runtime required by this
+WSL configuration:
+
+```bash
+cd "/mnt/c/Users/allen/Documents/ChatGPT/Room Reconstruction"
+bash scripts/setup_wsl.sh
+```
+
 The verified environment reports all five commands as available and uses:
 
 - Ubuntu 22.04.5 LTS on WSL 2
@@ -114,6 +131,8 @@ The verified environment reports all five commands as available and uses:
 - CUDA toolkit/compiler 11.8
 - PyTorch 2.1.2+cu118
 - Nerfstudio 1.1.5
+- NumPy 1.26.4
+- OpenCV 4.9.0.80
 
 A 20-iteration `splatfacto` smoke test completed on the official D-NeRF sample,
 saved a checkpoint, and reopened successfully in `ns-viewer` on port 7007.
@@ -133,12 +152,14 @@ results/living-room/
 Raw videos, extracted frames, reconstructions, and large `.ply` files are ignored
 by Git.
 
+Each run writes stage state and the exact completed `config.yml` path to
+`metadata.json`. A normal run refuses to use a directory that already contains
+reconstruction artifacts; pass `--resume` explicitly to reuse them.
+
 ## Running tests
 
 ```powershell
 $env:PYTHONPATH = "src"
 python -m unittest discover -s tests -v
 ```
-
-Additional test for remote SSH
 

@@ -20,3 +20,6 @@ class ExternalCommandError(ReconstructionError):
 class RegistrationError(ReconstructionError):
     """Camera registration is too weak to train a useful scene."""
 
+
+class OutputExistsError(ReconstructionError):
+    """An output directory contains artifacts that require an explicit resume."""
