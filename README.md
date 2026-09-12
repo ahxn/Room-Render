@@ -9,6 +9,8 @@ pipeline.
 The first end-to-end CLI slice is in place: input validation, frame extraction,
 camera processing, registration-rate checks, training, logs, and run metadata.
 The external reconstruction commands require a CUDA-capable Nerfstudio environment.
+Camera processing uses COLMAP sequential matching because the inputs are ordered
+video frames.
 
 ## Quick start
 
@@ -37,6 +39,20 @@ completed checkpoints are detected and reused:
 ```powershell
 python reconstruct.py room.mp4 --output results/living-room --resume
 ```
+
+Optionally score every extracted frame using the variance of its grayscale
+Laplacian and exclude blurry frames before camera-pose estimation:
+
+```bash
+python reconstruct.py room.mp4 \
+  --output results/living-room-filtered \
+  --filter-blurry-frames \
+  --blur-threshold 2.5
+```
+
+Filtering writes `frame_quality.json` with every score and acceptance decision,
+and links accepted images into `selected_frames/`. The default is off so an
+unfiltered run remains available as an evaluation baseline.
 
 Export the latest completed checkpoint to a portable Gaussian-splat PLY:
 
@@ -161,6 +177,8 @@ results/living-room/
 ├── logs/
 │   └── processing.log
 ├── frames/
+├── selected_frames/
+├── frame_quality.json
 ├── processed/
 ├── reconstruction/
 └── exports/

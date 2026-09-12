@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from .commands import require_command
+from .config import FrameQualityConfig, PipelineConfig
 from .environment import check_environment
 from .errors import ReconstructionError
 from .export import export_gaussian_splat
@@ -57,6 +58,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Reuse completed frames, camera processing, and training artifacts",
     )
+    parser.add_argument(
+        "--filter-blurry-frames",
+        action="store_true",
+        help="Score extracted frames with OpenCV and exclude frames below the blur threshold",
+    )
+    parser.add_argument(
+        "--blur-threshold",
+        type=float,
+        default=2.5,
+        help="Minimum Laplacian-variance score when filtering (default: 2.5)",
+    )
     return parser
 
 
@@ -91,7 +103,21 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(f"Exported Gaussian splat: {exported_path}")
             return 0
-        run_pipeline(args.video, args.output, dry_run=args.dry_run, resume=args.resume)
+        if args.blur_threshold < 0:
+            build_parser().error("--blur-threshold must be zero or greater")
+        config = PipelineConfig(
+            frame_quality=FrameQualityConfig(
+                enabled=args.filter_blurry_frames,
+                minimum_blur_score=args.blur_threshold,
+            )
+        )
+        run_pipeline(
+            args.video,
+            args.output,
+            config=config,
+            dry_run=args.dry_run,
+            resume=args.resume,
+        )
         print(f"Run metadata: {args.output / 'metadata.json'}")
         return 0
     except (ReconstructionError, FileNotFoundError) as exc:

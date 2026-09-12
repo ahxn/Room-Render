@@ -9,6 +9,10 @@ class InputValidationError(ReconstructionError):
     """The input video does not satisfy pipeline requirements."""
 
 
+class FrameQualityError(ReconstructionError):
+    """Extracted frames could not be scored or filtered."""
+
+
 class CommandUnavailableError(ReconstructionError):
     """A required external executable is unavailable."""
 

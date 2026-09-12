@@ -10,6 +10,7 @@ from pathlib import Path
 from .commands import run_command
 from .config import PipelineConfig
 from .errors import OutputExistsError, RegistrationError
+from .frame_quality import filter_frames
 from .metrics import count_registered_frames, registration_rate
 from .video import VideoMetadata, sampling_rate, validate_video
 
@@ -19,6 +20,8 @@ class OutputPaths:
     root: Path
     logs: Path
     frames: Path
+    selected_frames: Path
+    quality_manifest: Path
     processed: Path
     reconstruction: Path
     metadata: Path
@@ -29,11 +32,20 @@ def create_output_layout(root: Path) -> OutputPaths:
         root=root,
         logs=root / "logs",
         frames=root / "frames",
+        selected_frames=root / "selected_frames",
+        quality_manifest=root / "frame_quality.json",
         processed=root / "processed",
         reconstruction=root / "reconstruction",
         metadata=root / "metadata.json",
     )
-    for directory in (paths.root, paths.logs, paths.frames, paths.processed, paths.reconstruction):
+    for directory in (
+        paths.root,
+        paths.logs,
+        paths.frames,
+        paths.selected_frames,
+        paths.processed,
+        paths.reconstruction,
+    ):
         directory.mkdir(parents=True, exist_ok=True)
     return paths
 
@@ -69,9 +81,21 @@ def _frame_count(frames_dir: Path) -> int:
     return sum(1 for path in frames_dir.glob("frame_*.jpg") if path.is_file())
 
 
+def _quality_counts(manifest_path: Path) -> tuple[int, int] | None:
+    if not manifest_path.is_file():
+        return None
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        return int(payload["accepted_count"]), int(payload["rejected_count"])
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return None
+
+
 def _has_reconstruction_artifacts(paths: OutputPaths) -> bool:
     return bool(
         _frame_count(paths.frames)
+        or _frame_count(paths.selected_frames)
+        or paths.quality_manifest.is_file()
         or (paths.processed / "transforms.json").is_file()
         or any(paths.reconstruction.rglob("config.yml"))
     )
@@ -156,20 +180,64 @@ def run_pipeline(
                 dry_run=dry_run,
             )
 
-        selected = (
+        extracted = (
             existing_frames
             if resume and existing_frames
             else config.video.target_frame_count
             if dry_run
             else _frame_count(paths.frames)
         )
-        if selected == 0:
+        if extracted == 0:
             raise RegistrationError("Frame extraction produced no images.")
         if not (resume and existing_frames):
-            _set_stage(payload, "frames", "planned" if dry_run else "completed", count=selected)
+            _set_stage(payload, "frames", "planned" if dry_run else "completed", count=extracted)
 
         transforms_path = paths.processed / "transforms.json"
-        if resume and transforms_path.is_file():
+        reusing_camera_poses = resume and transforms_path.is_file()
+        selected = extracted
+        rejected = 0
+        processing_frames = paths.frames
+        if reusing_camera_poses:
+            logger.info("Skipping frame-quality changes because camera poses already exist")
+            quality_counts = _quality_counts(paths.quality_manifest)
+            if quality_counts is not None:
+                selected, rejected = quality_counts
+            _set_stage(payload, "frame_quality", "reused", selected=selected, rejected=rejected)
+        elif config.frame_quality.enabled:
+            logger.info(
+                "Scoring frames with blur threshold %.2f",
+                config.frame_quality.minimum_blur_score,
+            )
+            if dry_run:
+                _set_stage(
+                    payload,
+                    "frame_quality",
+                    "planned",
+                    threshold=config.frame_quality.minimum_blur_score,
+                )
+            else:
+                quality = filter_frames(
+                    paths.frames,
+                    paths.selected_frames,
+                    paths.quality_manifest,
+                    minimum_blur_score=config.frame_quality.minimum_blur_score,
+                )
+                selected = quality.accepted_count
+                rejected = quality.rejected_count
+                _set_stage(
+                    payload,
+                    "frame_quality",
+                    "completed",
+                    threshold=quality.minimum_blur_score,
+                    manifest_path=str(paths.quality_manifest),
+                    selected=selected,
+                    rejected=rejected,
+                )
+            processing_frames = paths.selected_frames
+        else:
+            _set_stage(payload, "frame_quality", "disabled", selected=selected, rejected=rejected)
+
+        if reusing_camera_poses:
             logger.info("Reusing previously estimated camera poses")
             _set_stage(payload, "camera_poses", "reused", transforms_path=str(transforms_path))
         else:
@@ -180,9 +248,11 @@ def run_pipeline(
                     "ns-process-data",
                     "images",
                     "--data",
-                    str(paths.frames),
+                    str(processing_frames),
                     "--output-dir",
                     str(paths.processed),
+                    "--matching-method",
+                    config.reconstruction.matching_method,
                 ],
                 logger=logger,
                 dry_run=dry_run,
@@ -192,8 +262,9 @@ def run_pipeline(
         registered = selected if dry_run else count_registered_frames(transforms_path)
         rate = registration_rate(registered, selected)
         payload["frames"] = {
-            "extracted": selected,
+            "extracted": extracted,
             "selected": selected,
+            "rejected": rejected,
             "registered": registered,
             "registration_rate": rate,
         }

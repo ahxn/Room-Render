@@ -15,11 +15,18 @@ class VideoConfig:
 @dataclass(frozen=True, slots=True)
 class ReconstructionConfig:
     method: str = "splatfacto"
+    matching_method: str = "sequential"
     minimum_registration_rate: float = 0.5
+
+
+@dataclass(frozen=True, slots=True)
+class FrameQualityConfig:
+    enabled: bool = False
+    minimum_blur_score: float = 2.5
 
 
 @dataclass(frozen=True, slots=True)
 class PipelineConfig:
     video: VideoConfig = VideoConfig()
+    frame_quality: FrameQualityConfig = FrameQualityConfig()
     reconstruction: ReconstructionConfig = ReconstructionConfig()
-
