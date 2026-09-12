@@ -9,6 +9,7 @@ from pathlib import Path
 from .commands import require_command
 from .environment import check_environment
 from .errors import ReconstructionError
+from .export import export_gaussian_splat
 from .pipeline import find_training_config, run_pipeline
 
 
@@ -28,11 +29,28 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Report whether required external commands are available",
     )
-    parser.add_argument(
+    result_action = parser.add_mutually_exclusive_group()
+    result_action.add_argument(
         "--open",
         action="store_true",
         dest="open_result",
         help="Open an existing result with ns-viewer instead of reconstructing",
+    )
+    result_action.add_argument(
+        "--export",
+        action="store_true",
+        dest="export_result",
+        help="Export the latest completed checkpoint as a Gaussian-splat PLY",
+    )
+    parser.add_argument(
+        "--export-dir",
+        type=Path,
+        help="Export destination (default: <output>/exports)",
+    )
+    parser.add_argument(
+        "--export-filename",
+        default="splat.ply",
+        help="PLY filename used with --export (default: splat.ply)",
     )
     parser.add_argument(
         "--resume",
@@ -55,14 +73,24 @@ def main(argv: list[str] | None = None) -> int:
         return _check_environment()
     if args.output is None:
         build_parser().error("--output is required unless --check-environment is used")
-    if args.video is None and not args.open_result:
-        build_parser().error("video is required unless --check-environment or --open is used")
+    if args.video is None and not (args.open_result or args.export_result):
+        build_parser().error(
+            "video is required unless --check-environment, --open, or --export is used"
+        )
 
     try:
         if args.open_result:
             require_command("ns-viewer")
             config_path = find_training_config(args.output)
             return subprocess.run(["ns-viewer", "--load-config", str(config_path)], check=False).returncode
+        if args.export_result:
+            exported_path = export_gaussian_splat(
+                args.output,
+                export_dir=args.export_dir,
+                filename=args.export_filename,
+            )
+            print(f"Exported Gaussian splat: {exported_path}")
+            return 0
         run_pipeline(args.video, args.output, dry_run=args.dry_run, resume=args.resume)
         print(f"Run metadata: {args.output / 'metadata.json'}")
         return 0

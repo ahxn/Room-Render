@@ -23,3 +23,7 @@ class RegistrationError(ReconstructionError):
 
 class OutputExistsError(ReconstructionError):
     """An output directory contains artifacts that require an explicit resume."""
+
+
+class ExportError(ReconstructionError):
+    """A completed reconstruction could not be exported."""

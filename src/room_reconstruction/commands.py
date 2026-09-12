@@ -10,7 +10,14 @@ from pathlib import Path
 
 from .errors import CommandUnavailableError, ExternalCommandError
 
-REQUIRED_COMMANDS = ("ffmpeg", "ffprobe", "ns-process-data", "ns-train", "ns-viewer")
+REQUIRED_COMMANDS = (
+    "ffmpeg",
+    "ffprobe",
+    "ns-process-data",
+    "ns-train",
+    "ns-viewer",
+    "ns-export",
+)
 
 
 def command_availability() -> dict[str, bool]:

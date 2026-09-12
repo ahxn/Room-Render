@@ -38,12 +38,28 @@ completed checkpoints are detected and reused:
 python reconstruct.py room.mp4 --output results/living-room --resume
 ```
 
+Export the latest completed checkpoint to a portable Gaussian-splat PLY:
+
+```bash
+python reconstruct.py --output results/living-room --export
+```
+
+To make the export immediately accessible from Windows, choose a mounted Windows
+directory:
+
+```bash
+python reconstruct.py \
+  --output "/home/allen/results/living-room" \
+  --export \
+  --export-dir "/mnt/c/Users/allen/Downloads/living-room-export"
+```
+
 ## Prerequisites
 
 - Python 3.10+
 - `ffmpeg` and `ffprobe` on `PATH`
 - Nerfstudio with a compatible PyTorch/CUDA environment (`ns-process-data`,
-  `ns-train`, and `ns-viewer` on `PATH`)
+  `ns-train`, `ns-viewer`, and `ns-export` on `PATH`)
 
 Run `python reconstruct.py --check-environment` to inspect command availability
 and exercise the installed OpenCV, NumPy, PyTorch, CUDA, and Nerfstudio runtime.
@@ -62,7 +78,7 @@ In Ubuntu, install the system packages and Miniforge:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y ffmpeg build-essential cmake ninja-build \
+sudo apt-get install -y ffmpeg build-essential cmake ninja-build libopengl0 \
   python3-dev python3-venv python3-pip
 curl -fL \
   https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh \
@@ -146,7 +162,9 @@ results/living-room/
 │   └── processing.log
 ├── frames/
 ├── processed/
-└── reconstruction/
+├── reconstruction/
+└── exports/
+    └── splat.ply
 ```
 
 Raw videos, extracted frames, reconstructions, and large `.ply` files are ignored
@@ -155,6 +173,8 @@ by Git.
 Each run writes stage state and the exact completed `config.yml` path to
 `metadata.json`. A normal run refuses to use a directory that already contains
 reconstruction artifacts; pass `--resume` explicitly to reuse them.
+Successful exports are appended to the metadata with their path, size, source
+configuration, and creation time.
 
 ## Running tests
 

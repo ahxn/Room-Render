@@ -10,6 +10,10 @@ if ! command -v conda >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! ldconfig -p 2>/dev/null | grep -q 'libOpenGL.so.0'; then
+  echo "Warning: libOpenGL.so.0 is missing. Run: sudo apt-get install -y libopengl0" >&2
+fi
+
 if conda env list | awk '{print $1}' | grep -qx "$ENVIRONMENT_NAME"; then
   conda env update --name "$ENVIRONMENT_NAME" --file "$REPO_ROOT/environment.yml"
 else
