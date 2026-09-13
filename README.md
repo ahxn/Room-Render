@@ -258,6 +258,34 @@ an issue, README, or evaluation notes. Metrics produced separately by
 `ns-eval`—PSNR, SSIM, and LPIPS—should be added to the evaluation report with the
 exact config used.
 
+## Troubleshooting
+
+**`Input video does not exist`** — replace example paths with the actual WSL path.
+A Windows download such as `C:\Users\allen\Downloads\room.mp4` is available at
+`/mnt/c/Users/allen/Downloads/room.mp4`.
+
+**Ubuntu waits for OOBE** — finish the first-launch username and password prompts
+before running project commands. If WSL was just enabled, restart Windows first.
+
+**Environment check fails** — activate the `nerfstudio` Conda environment, then run
+`python reconstruct.py --check-environment`. Re-run `scripts/setup_wsl.sh` only when
+repairing or recreating the environment.
+
+**OpenCV rejects a valid NumPy array** — verify the pinned known-good versions from
+the setup section. Mixing OpenCV wheels or NumPy 2.x with this environment can cause
+binary incompatibilities.
+
+**Registration is low** — recapture with slower movement, more overlap, and more
+sideways translation. Training longer cannot repair incorrect camera poses. See the
+[capture guide](docs/capture-guide.md).
+
+**CUDA runs out of memory** — try `configs/low-memory.yml`, close other GPU-heavy
+applications, and stop any old viewer or training process before retrying.
+
+**GPU or WSL memory remains allocated after Ctrl+C** — close the viewer tab and stop
+remaining Nerfstudio processes. From PowerShell, `wsl --shutdown` fully releases the
+WSL virtual machine when no Linux work needs to remain running.
+
 ## Limitations
 
 - Each new room requires its own camera-pose solve and Gaussian-splat optimization;
@@ -271,4 +299,12 @@ exact config used.
   mesh.
 - Version 1 is a local CLI. Upload UI, job queues, cloud storage, and hosted viewing
   are intentionally deferred until multi-room reliability is measured.
+
+## Resume-ready summary
+
+Built a Python video-to-3D room reconstruction pipeline integrating OpenCV, FFmpeg,
+COLMAP, PyTorch, and Nerfstudio; automated frame selection, camera-registration
+quality gates, resumable Gaussian-splat optimization, structured run metadata,
+interactive viewing, and PLY export, with 100% camera registration on the first
+250-frame room capture.
 
