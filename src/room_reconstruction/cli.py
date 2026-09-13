@@ -4,10 +4,11 @@ import argparse
 import logging
 import subprocess
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from .commands import require_command
-from .config import FrameQualityConfig, PipelineConfig
+from .config import PipelineConfig, load_pipeline_config, validate_config
 from .environment import check_environment
 from .errors import ReconstructionError
 from .export import export_gaussian_splat
@@ -20,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("video", nargs="?", type=Path, help="Path to the input room video")
     parser.add_argument("--output", type=Path, help="Directory for reconstruction artifacts")
+    parser.add_argument("--config", type=Path, help="YAML pipeline configuration file")
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -60,14 +62,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--filter-blurry-frames",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=None,
         help="Score extracted frames with OpenCV and exclude frames below the blur threshold",
     )
     parser.add_argument(
         "--blur-threshold",
         type=float,
-        default=2.5,
-        help="Minimum Laplacian-variance score when filtering (default: 2.5)",
+        default=None,
+        help="Override the configured minimum Laplacian-variance score",
     )
     return parser
 
@@ -103,14 +106,14 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(f"Exported Gaussian splat: {exported_path}")
             return 0
-        if args.blur_threshold < 0:
-            build_parser().error("--blur-threshold must be zero or greater")
-        config = PipelineConfig(
-            frame_quality=FrameQualityConfig(
-                enabled=args.filter_blurry_frames,
-                minimum_blur_score=args.blur_threshold,
-            )
-        )
+        config = load_pipeline_config(args.config) if args.config else PipelineConfig()
+        frame_quality = config.frame_quality
+        if args.filter_blurry_frames is not None:
+            frame_quality = replace(frame_quality, enabled=args.filter_blurry_frames)
+        if args.blur_threshold is not None:
+            frame_quality = replace(frame_quality, minimum_blur_score=args.blur_threshold)
+        config = replace(config, frame_quality=frame_quality)
+        validate_config(config)
         run_pipeline(
             args.video,
             args.output,

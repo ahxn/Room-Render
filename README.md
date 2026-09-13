@@ -54,6 +54,28 @@ Filtering writes `frame_quality.json` with every score and acceptance decision,
 and links accepted images into `selected_frames/`. The default is off so an
 unfiltered run remains available as an evaluation baseline.
 
+Use a checked-in YAML configuration for repeatable runs:
+
+```bash
+python reconstruct.py room.mp4 \
+  --output results/living-room \
+  --config configs/default.yml
+```
+
+For a faster preview with lower GPU-memory pressure, the low-memory preset uses
+180 frames, 15,000 training iterations, half-resolution training cameras, and
+CPU image caching:
+
+```bash
+python reconstruct.py room.mp4 \
+  --output results/living-room-preview \
+  --config configs/low-memory.yml
+```
+
+Command-line blur options override their YAML values. Use
+`--filter-blurry-frames` or `--no-filter-blurry-frames` to explicitly enable or
+disable filtering for a configured run.
+
 Export the latest completed checkpoint to a portable Gaussian-splat PLY:
 
 ```bash

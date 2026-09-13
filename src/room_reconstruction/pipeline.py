@@ -138,6 +138,7 @@ def run_pipeline(
         "started_at": started_at.isoformat(),
         "input_path": str(input_path.resolve()),
         "resume": resume,
+        "config": config.to_dict(),
         "stages": {},
     }
     _write_metadata(paths.metadata, payload)
@@ -283,17 +284,36 @@ def run_pipeline(
         else:
             logger.info("Training Gaussian-splat scene")
             _set_stage(payload, "training", "planned" if dry_run else "running")
+            training_command = [
+                "ns-train",
+                config.reconstruction.method,
+                "--output-dir",
+                str(paths.reconstruction),
+                "--data",
+                str(paths.processed),
+                "--viewer.quit-on-train-completion",
+                "True",
+            ]
+            if config.reconstruction.max_num_iterations is not None:
+                training_command.extend(
+                    ["--max-num-iterations", str(config.reconstruction.max_num_iterations)]
+                )
+            if config.reconstruction.cache_images is not None:
+                training_command.extend(
+                    [
+                        "--pipeline.datamanager.cache-images",
+                        config.reconstruction.cache_images,
+                    ]
+                )
+            if config.reconstruction.camera_res_scale_factor is not None:
+                training_command.extend(
+                    [
+                        "--pipeline.datamanager.camera-res-scale-factor",
+                        str(config.reconstruction.camera_res_scale_factor),
+                    ]
+                )
             run_command(
-                [
-                    "ns-train",
-                    config.reconstruction.method,
-                    "--output-dir",
-                    str(paths.reconstruction),
-                    "--data",
-                    str(paths.processed),
-                    "--viewer.quit-on-train-completion",
-                    "True",
-                ],
+                training_command,
                 logger=logger,
                 dry_run=dry_run,
             )

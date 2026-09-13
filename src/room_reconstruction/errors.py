@@ -13,6 +13,10 @@ class FrameQualityError(ReconstructionError):
     """Extracted frames could not be scored or filtered."""
 
 
+class ConfigurationError(ReconstructionError):
+    """A pipeline configuration file is missing or invalid."""
+
+
 class CommandUnavailableError(ReconstructionError):
     """A required external executable is unavailable."""
 
