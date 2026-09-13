@@ -6,38 +6,58 @@ pipeline.
 
 ## Current status
 
-The first end-to-end CLI slice is in place: input validation, frame extraction,
-camera processing, registration-rate checks, training, logs, and run metadata.
-The external reconstruction commands require a CUDA-capable Nerfstudio environment.
-Camera processing uses COLMAP sequential matching because the inputs are ordered
-video frames.
+Version 1 works end to end on a real phone capture: input validation, frame
+extraction, optional blur filtering, camera-pose recovery, registration checks,
+Gaussian-splat optimization, logs, metadata, viewing, and PLY export. The verified
+baseline registered all 250 frames and produced a 266,201-Gaussian export.
+
+The remaining validation work is to repeat the experiment on additional rooms.
+See the [evaluation report](docs/evaluation.md) for measured results and the
+[limitations](#limitations) section for the current boundaries.
+
+## How it works
+
+```text
+phone video
+   -> FFprobe validation
+   -> FFmpeg frame sampling
+   -> optional OpenCV blur filtering
+   -> COLMAP camera poses (through Nerfstudio)
+   -> registration quality gate
+   -> Nerfstudio splatfacto optimization
+   -> interactive viewer / portable PLY export
+```
+
+More detail: [architecture](docs/architecture.md) ·
+[capture guide](docs/capture-guide.md) ·
+[evaluation methodology](docs/evaluation.md) ·
+[demo runbook](docs/demo.md)
 
 ## Quick start
 
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
+```bash
+conda activate nerfstudio
 python -m pip install -e ".[dev]"
-python reconstruct.py room.mp4 --output results/living-room
+python reconstruct.py room.mp4 --output /home/allen/results/living-room
 ```
 
 Validate a video and inspect the planned commands without running GPU work:
 
-```powershell
-python reconstruct.py room.mp4 --output results/living-room --dry-run
+```bash
+python reconstruct.py room.mp4 --output /home/allen/results/living-room-dry-run --dry-run
 ```
 
 Open a completed reconstruction:
 
-```powershell
-python reconstruct.py --output results/living-room --open
+```bash
+python reconstruct.py --output /home/allen/results/living-room --open
 ```
 
 Resume after a failed or interrupted stage. Existing frames, camera poses, and
 completed checkpoints are detected and reused:
 
-```powershell
-python reconstruct.py room.mp4 --output results/living-room --resume
+```bash
+python reconstruct.py room.mp4 --output /home/allen/results/living-room --resume
 ```
 
 Optionally score every extracted frame using the variance of its grayscale
@@ -218,8 +238,37 @@ configuration, and creation time.
 
 ## Running tests
 
-```powershell
-$env:PYTHONPATH = "src"
-python -m unittest discover -s tests -v
+```bash
+python -m pytest
+python -m ruff check .
 ```
+
+## Summarizing experiments
+
+Generate a Markdown results table from one or more completed run directories:
+
+```bash
+python scripts/summarize_results.py \
+  /home/allen/results/my-room \
+  /home/allen/results/my-room-filtered-v2
+```
+
+Pass either a run directory or its `metadata.json`. The output can be pasted into
+an issue, README, or evaluation notes. Metrics produced separately by
+`ns-eval`—PSNR, SSIM, and LPIPS—should be added to the evaluation report with the
+exact config used.
+
+## Limitations
+
+- Each new room requires its own camera-pose solve and Gaussian-splat optimization;
+  this is scene fitting, not inference from a reusable room model.
+- A CUDA-capable NVIDIA GPU is required for practical training. A Mac can SSH into
+  the Windows/WSL host and start or inspect a run, but the GPU work still executes
+  on that host.
+- Reflective surfaces, blank walls, motion blur, moving objects, changing exposure,
+  and low-parallax captures can weaken camera registration or visual quality.
+- The output is a viewable Gaussian splat, not a clean CAD model or measurement-grade
+  mesh.
+- Version 1 is a local CLI. Upload UI, job queues, cloud storage, and hosted viewing
+  are intentionally deferred until multi-room reliability is measured.
 

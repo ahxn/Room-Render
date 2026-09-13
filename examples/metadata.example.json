@@ -1,0 +1,41 @@
+{
+  "status": "completed",
+  "started_at": "2026-09-12T18:00:00+00:00",
+  "finished_at": "2026-09-12T18:14:11+00:00",
+  "input_path": "/path/to/room.mp4",
+  "resume": false,
+  "config": {
+    "video": {
+      "maximum_duration_seconds": 90.0,
+      "target_frame_count": 250,
+      "minimum_width": 1280,
+      "minimum_height": 720,
+      "maximum_file_size_bytes": 2000000000
+    },
+    "frame_quality": {
+      "enabled": false,
+      "minimum_blur_score": 2.5
+    },
+    "reconstruction": {
+      "method": "splatfacto",
+      "matching_method": "sequential",
+      "minimum_registration_rate": 0.5,
+      "max_num_iterations": null,
+      "cache_images": null,
+      "camera_res_scale_factor": null
+    }
+  },
+  "frames": {
+    "extracted": 250,
+    "selected": 250,
+    "rejected": 0,
+    "registered": 243,
+    "registration_rate": 0.972
+  },
+  "processing_duration_seconds": 851.0,
+  "result": {
+    "reconstruction_path": "/path/to/results/room/reconstruction",
+    "config_path": "/path/to/results/room/reconstruction/config.yml",
+    "viewer_command": "ns-viewer --load-config /path/to/results/room/reconstruction/config.yml"
+  }
+}
