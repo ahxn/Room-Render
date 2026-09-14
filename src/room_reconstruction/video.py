@@ -74,6 +74,18 @@ def probe_video(path: Path) -> VideoMetadata:
     return parse_ffprobe_output(completed.stdout, file_size_bytes=path.stat().st_size)
 
 
+def resolution_meets_minimum(
+    width: int,
+    height: int,
+    minimum_width: int,
+    minimum_height: int,
+) -> bool:
+    """Return whether either landscape or portrait orientation meets the minimum."""
+    actual_short, actual_long = sorted((width, height))
+    required_short, required_long = sorted((minimum_width, minimum_height))
+    return actual_short >= required_short and actual_long >= required_long
+
+
 def validate_video(path: Path, config: VideoConfig) -> VideoMetadata:
     if not path.exists():
         raise InputValidationError(f"Input video does not exist: {path}")
@@ -93,10 +105,15 @@ def validate_video(path: Path, config: VideoConfig) -> VideoMetadata:
             f"Video is {metadata.duration_seconds:.1f}s; maximum is "
             f"{config.maximum_duration_seconds:.1f}s."
         )
-    if metadata.width < config.minimum_width or metadata.height < config.minimum_height:
+    if not resolution_meets_minimum(
+        metadata.width,
+        metadata.height,
+        config.minimum_width,
+        config.minimum_height,
+    ):
         raise InputValidationError(
-            f"Video resolution is {metadata.width}x{metadata.height}; minimum is "
-            f"{config.minimum_width}x{config.minimum_height}."
+            f"Video resolution is {metadata.width}x{metadata.height}; minimum dimensions are "
+            f"{config.minimum_width}x{config.minimum_height} in either orientation."
         )
     return metadata
 

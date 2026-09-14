@@ -48,12 +48,17 @@ blurred capture, but that hypothesis needs another controlled test.
 | Capture | Default | Low-memory preview | Filtering comparison | Status |
 | --- | --- | --- | --- | --- |
 | Room 1 | Complete | Not required for initial proof | Complete | Complete |
-| Room 2 | Pending | Pending | Pending if blur is present | Waiting for capture |
+| Room 2 | Failed registration gate (2/180, 1.1%) | Attempted | Not run | Recapture needed: insufficient overlap |
 | Room 3 | Pending | Pending | Pending if blur is present | Waiting for capture |
 
-The next meaningful evidence is a second room, beginning with the low-memory
-preset. A third capture can be intentionally difficult—blank walls, reflections,
-or mild motion blur—to test failure guidance and whether filtering ever helps.
+Room 2 was a 47.9-second portrait capture (1080×1920) and is accepted by the
+orientation-aware validator. Both sequential and exhaustive COLMAP matching found
+poses for only 2/180 frames. The sampled views jump between room areas with too
+little overlap, so the safety gate stopped the run before GPU training. This is a
+useful failure result, not a successful reconstruction. Recapture Room 2 with
+slower movement and overlapping intermediate views. A third capture can be
+intentionally difficult—blank walls, reflections, or mild motion blur—to test
+failure guidance and whether filtering ever helps.
 
 ## Generate a metadata table
 

@@ -2,7 +2,12 @@ import json
 import unittest
 
 from room_reconstruction.errors import InputValidationError
-from room_reconstruction.video import parse_ffprobe_output, parse_frame_rate, sampling_rate
+from room_reconstruction.video import (
+    parse_ffprobe_output,
+    parse_frame_rate,
+    resolution_meets_minimum,
+    sampling_rate,
+)
 
 
 class VideoTests(unittest.TestCase):
@@ -42,3 +47,11 @@ class VideoTests(unittest.TestCase):
 
     def test_sampling_rate_targets_requested_frame_count(self) -> None:
         self.assertEqual(sampling_rate(50.0, 250), 5.0)
+
+
+    def test_resolution_accepts_portrait_orientation(self) -> None:
+        self.assertTrue(resolution_meets_minimum(1080, 1920, 1280, 720))
+
+
+    def test_resolution_rejects_insufficient_short_side(self) -> None:
+        self.assertFalse(resolution_meets_minimum(640, 1920, 1280, 720))
