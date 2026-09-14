@@ -12,7 +12,7 @@ from .config import PipelineConfig
 from .errors import OutputExistsError, RegistrationError
 from .frame_quality import filter_frames
 from .metrics import count_registered_frames, registration_rate
-from .video import VideoMetadata, sampling_rate, validate_video
+from .video import VideoMetadata, sampling_rate, source_quality_advisories, validate_video
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,6 +147,11 @@ def run_pipeline(
         logger.info("Validating input video")
         video: VideoMetadata = validate_video(input_path, config.video)
         payload["input"] = video.to_dict()
+        advisories = source_quality_advisories(video)
+        if advisories:
+            payload["input_advisories"] = advisories
+            for advisory in advisories:
+                logger.warning(advisory)
 
         if not resume and _has_reconstruction_artifacts(paths):
             raise OutputExistsError(

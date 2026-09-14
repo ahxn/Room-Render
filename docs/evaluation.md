@@ -48,17 +48,27 @@ blurred capture, but that hypothesis needs another controlled test.
 | Capture | Default | Low-memory preview | Filtering comparison | Status |
 | --- | --- | --- | --- | --- |
 | Room 1 | Complete | Not required for initial proof | Complete | Complete |
-| Room 2 | Failed registration gate (2/180, 1.1%) | Attempted | Not run | Recapture needed: insufficient overlap |
-| Room 3 | Pending | Pending | Pending if blur is present | Waiting for capture |
+| Room 2 | Complete (original-quality MOV) | Complete | Not run | Complete: 180/180 registered; compression was the failure cause |
+| Room 3 | Failed registration gate (2/180, 1.1%) | Attempted | Not run | High-quality source; coverage/overlap issue |
 
-Room 2 was a 47.9-second portrait capture (1080×1920) and is accepted by the
-orientation-aware validator. Both sequential and exhaustive COLMAP matching found
-poses for only 2/180 frames. The sampled views jump between room areas with too
-little overlap, so the safety gate stopped the run before GPU training. This is a
-useful failure result, not a successful reconstruction. Recapture Room 2 with
-slower movement and overlapping intermediate views. A third capture can be
-intentionally difficult—blank walls, reflections, or mild motion blur—to test
-failure guidance and whether filtering ever helps.
+The first Room 2 attempt was a 47.9-second portrait MP4 (1080×1920) and is
+accepted by the orientation-aware validator. Both sequential and exhaustive
+COLMAP matching found poses for only 2/180 frames, so the safety gate stopped
+the run before GPU training. A subsequent compressed 1080p MP4 improved only to
+8/180 frames (4.4%).
+
+The original Room 2 MOV resolved the discrepancy: it registered all 180/180
+frames and completed a 15,000-iteration low-memory `splatfacto` run. Its held-out
+metrics were PSNR 30.365, SSIM 0.96095, and LPIPS 0.04753; the exported Gaussian
+splat is 41 MB. The successful Room 1 source was 4K at about 26.1 Mb/s and the
+original Room 2 MOV was 4K at about 44.8 Mb/s, while the failed MP4 was 1080p at
+about 4.3 Mb/s. This establishes that the prior failure was caused by the
+lower-quality compressed copy rather than the recording path itself. A third
+capture can be intentionally difficult—blank walls, reflections, or mild motion
+blur—to test failure guidance and whether filtering ever helps. Room 3 was a
+45.5-second 4K MOV at about 44.99 Mb/s, but COLMAP again found poses for only
+2/180 frames. Because the source was original-quality, this failure is attributed
+to scene coverage, overlap, blur, or exposure changes rather than transcoding.
 
 ## Generate a metadata table
 

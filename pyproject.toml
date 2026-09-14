@@ -14,9 +14,11 @@ dependencies = ["PyYAML>=6"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
+web = ["fastapi>=0.110", "python-multipart>=0.0.9", "uvicorn>=0.29"]
 
 [project.scripts]
 room-reconstruct = "room_reconstruction.cli:main"
+room-reconstruct-web = "room_reconstruction.webapp:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

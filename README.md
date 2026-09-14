@@ -112,6 +112,30 @@ python reconstruct.py \
   --export-dir "/mnt/c/Users/allen/Downloads/living-room-export"
 ```
 
+## Local browser interface
+
+The optional local web UI wraps the same CLI and runs reconstruction on the
+computer where it is started. It does not upload videos or require a hosted
+service:
+
+```bash
+python -m pip install -e ".[web]"
+room-reconstruct-web
+```
+
+Open `http://127.0.0.1:8000`, choose an original-quality `.mov` or `.mp4`, and
+start a reconstruction. The page polls the local job and reports when the
+result is ready. The completed scene can then be opened with the saved
+Nerfstudio configuration:
+
+```bash
+python reconstruct.py --output /home/allen/results/web-<job-id> --open
+```
+
+The browser UI is intentionally a thin layer around the tested command-line
+pipeline. The CLI remains the reproducible entry point for automation and
+resume workflows.
+
 ## Prerequisites
 
 - Python 3.10+

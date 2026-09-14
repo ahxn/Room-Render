@@ -158,4 +158,5 @@ def _video() -> VideoMetadata:
         frame_rate=30.0,
         file_size_bytes=100,
         codec="h264",
+        bit_rate_bits_per_second=12_000_000,
     )

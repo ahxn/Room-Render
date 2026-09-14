@@ -7,6 +7,7 @@ from room_reconstruction.video import (
     parse_frame_rate,
     resolution_meets_minimum,
     sampling_rate,
+    source_quality_advisories,
 )
 
 
@@ -38,6 +39,7 @@ class VideoTests(unittest.TestCase):
         self.assertEqual(result.frame_rate, 30.0)
         self.assertEqual(result.file_size_bytes, 1234)
         self.assertEqual(result.codec, "h264")
+        self.assertIsNone(result.bit_rate_bits_per_second)
 
 
     def test_parse_ffprobe_output_rejects_missing_video(self) -> None:
@@ -55,3 +57,25 @@ class VideoTests(unittest.TestCase):
 
     def test_resolution_rejects_insufficient_short_side(self) -> None:
         self.assertFalse(resolution_meets_minimum(640, 1920, 1280, 720))
+
+    def test_source_quality_advisory_flags_low_bitrate_hd_video(self) -> None:
+        payload = json.dumps(
+            {
+                "streams": [
+                    {
+                        "codec_type": "video",
+                        "codec_name": "h264",
+                        "width": 1920,
+                        "height": 1080,
+                        "avg_frame_rate": "30/1",
+                    }
+                ],
+                "format": {"duration": "43.8", "bit_rate": "4300000"},
+            }
+        )
+        metadata = parse_ffprobe_output(payload, file_size_bytes=1234)
+
+        advisories = source_quality_advisories(metadata)
+
+        self.assertEqual(len(advisories), 1)
+        self.assertIn("compressed copy", advisories[0])

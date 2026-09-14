@@ -20,6 +20,7 @@ class VideoMetadata:
     frame_rate: float
     file_size_bytes: int
     codec: str
+    bit_rate_bits_per_second: int | None
 
     def to_dict(self) -> dict[str, float | int | str]:
         return asdict(self)
@@ -39,6 +40,8 @@ def parse_ffprobe_output(payload: str, *, file_size_bytes: int) -> VideoMetadata
         stream = next(item for item in data["streams"] if item.get("codec_type") == "video")
         format_data = data.get("format", {})
         duration = float(stream.get("duration") or format_data["duration"])
+        raw_bit_rate = stream.get("bit_rate") or format_data.get("bit_rate")
+        bit_rate = int(raw_bit_rate) if raw_bit_rate not in (None, "N/A") else None
         return VideoMetadata(
             duration_seconds=duration,
             width=int(stream["width"]),
@@ -46,6 +49,7 @@ def parse_ffprobe_output(payload: str, *, file_size_bytes: int) -> VideoMetadata
             frame_rate=parse_frame_rate(stream.get("avg_frame_rate", "0/1")),
             file_size_bytes=file_size_bytes,
             codec=str(stream.get("codec_name", "unknown")),
+            bit_rate_bits_per_second=bit_rate,
         )
     except (KeyError, TypeError, ValueError, StopIteration, json.JSONDecodeError) as exc:
         raise InputValidationError("FFprobe did not return a valid video stream.") from exc
@@ -84,6 +88,22 @@ def resolution_meets_minimum(
     actual_short, actual_long = sorted((width, height))
     required_short, required_long = sorted((minimum_width, minimum_height))
     return actual_short >= required_short and actual_long >= required_long
+
+
+def source_quality_advisories(metadata: VideoMetadata) -> list[str]:
+    """Return non-blocking warnings for sources likely to be compressed copies."""
+    if (
+        metadata.bit_rate_bits_per_second is not None
+        and max(metadata.width, metadata.height) <= 1920
+        and metadata.bit_rate_bits_per_second < 8_000_000
+    ):
+        return [
+            (
+                "Input video is 1080p-or-smaller at under 8 Mb/s and may be a compressed copy. "
+                "For best pose recovery, use the original high-quality recording when available."
+            )
+        ]
+    return []
 
 
 def validate_video(path: Path, config: VideoConfig) -> VideoMetadata:
