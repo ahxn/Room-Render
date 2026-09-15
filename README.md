@@ -92,6 +92,16 @@ python reconstruct.py room.mp4 \
   --config configs/low-memory.yml
 ```
 
+For a full-quality comparison on a capture that is known to register at 180
+frames, use the full-quality preset. It keeps the stable 180-frame sampling
+while restoring the default 30,000 iterations and full-resolution training:
+
+```bash
+python reconstruct.py room.mp4 \
+  --output results/room-full-quality \
+  --config configs/full-quality.yml
+```
+
 Command-line blur options override their YAML values. Use
 `--filter-blurry-frames` or `--no-filter-blurry-frames` to explicitly enable or
 disable filtering for a configured run.

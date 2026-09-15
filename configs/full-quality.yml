@@ -1,0 +1,18 @@
+video:
+  maximum_duration_seconds: 90
+  target_frame_count: 180
+  minimum_width: 1280
+  minimum_height: 720
+  maximum_file_size_bytes: 2000000000
+
+frame_quality:
+  enabled: false
+  minimum_blur_score: 2.5
+
+reconstruction:
+  method: splatfacto
+  matching_method: sequential
+  minimum_registration_rate: 0.5
+  max_num_iterations: null
+  cache_images: null
+  camera_res_scale_factor: null
