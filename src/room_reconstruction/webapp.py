@@ -11,12 +11,24 @@ from pathlib import Path
 from typing import Annotated
 
 try:
-    from fastapi import FastAPI, File, HTTPException, UploadFile
+    from fastapi import FastAPI, File, Form, HTTPException, UploadFile
     from fastapi.responses import HTMLResponse
 except ImportError as exc:  # pragma: no cover
     raise RuntimeError("Install web dependencies with: python -m pip install -e '.[web]'") from exc
 
 ALLOWED_SUFFIXES = {".mp4", ".mov", ".mkv", ".avi", ".m4v"}
+QUALITY_PRESETS = {
+    "low": {
+        "label": "Low quality (15,000 iterations)",
+        "description": "Faster processing with lower GPU-memory pressure.",
+        "config": "low-memory.yml",
+    },
+    "high": {
+        "label": "High quality (30,000 iterations)",
+        "description": "Higher-resolution training for the final reconstruction.",
+        "config": "full-quality.yml",
+    },
+}
 RESULTS_ROOT = Path(os.environ.get("ROOM_RECONSTRUCTION_RESULTS", "/home/allen/results"))
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -24,6 +36,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 class Job:
     job_id: str
     output: Path
+    quality: str
     process: subprocess.Popen[str] | None = None
 
 JOBS: dict[str, Job] = {}
@@ -40,11 +53,14 @@ button:disabled{opacity:.5}.status{margin-top:1.5rem;padding:1rem;background:#f5
 <p>Upload an original-quality room video. Processing runs on your computer's GPU.</p>
 <p>Move slowly with physical translation and substantial overlap between views.</p>
 <form id="form"><input id="video" type="file" accept=".mov,.mp4,.mkv,.avi,.m4v" required>
+<label for="quality">Processing quality</label>
+<select id="quality"><option value="low">Low quality (15,000 iterations) — faster, lower memory</option>
+<option value="high">High quality (30,000 iterations) — slower, higher memory</option></select>
 <button id="submit">Reconstruct room</button></form><div id="status" class="status" hidden></div></main>
 <script>
 const form=document.querySelector('#form'),input=document.querySelector('#video'),button=document.querySelector('#submit'),status=document.querySelector('#status');
 const show=t=>{status.hidden=false;status.textContent=t};
-form.onsubmit=async e=>{e.preventDefault();button.disabled=true;show('Uploading video…');const d=new FormData();d.append('video',input.files[0]);
+form.onsubmit=async e=>{e.preventDefault();button.disabled=true;show('Uploading video…');const d=new FormData();d.append('video',input.files[0]);d.append('quality',document.querySelector('#quality').value);
 const r=await fetch('/api/jobs',{method:'POST',body:d});if(!r.ok){show(await r.text());button.disabled=false;return}const j=await r.json();
 const poll=async()=>{const s=await (await fetch('/api/jobs/'+j.id)).json();show(s.message);if(s.status==='running')setTimeout(poll,2000);else button.disabled=false};poll()};
 </script></body></html>
@@ -65,8 +81,10 @@ def _status(job: Job) -> dict[str, str]:
     state = str(metadata.get("status", "running"))
     if job.process and job.process.poll() is not None and state == "running":
         state = "failed"
+    preset = QUALITY_PRESETS[job.quality]
     if state == "completed":
-        message = "Reconstruction completed. Open it with: python reconstruct.py --output " + str(job.output) + " --open"
+        message = (f"Reconstruction completed with {preset['label']}. Open it with: "
+                   "python reconstruct.py --output " + str(job.output) + " --open")
     elif state == "failed":
         message = "Reconstruction stopped. Check logs/processing.log for details."
     else:
@@ -74,7 +92,12 @@ def _status(job: Job) -> dict[str, str]:
     return {"id": job.job_id, "status": state, "message": message}
 
 @app.post("/api/jobs")
-async def create_job(video: Annotated[UploadFile, File(...)]) -> dict[str, str]:
+async def create_job(
+    video: Annotated[UploadFile, File(...)],
+    quality: Annotated[str, Form()] = "low",
+) -> dict[str, str]:
+    if quality not in QUALITY_PRESETS:
+        raise HTTPException(status_code=400, detail="Unknown quality preset.")
     suffix = Path(video.filename or "").suffix.lower()
     if suffix not in ALLOWED_SUFFIXES:
         raise HTTPException(status_code=400, detail="Unsupported video format.")
@@ -83,12 +106,13 @@ async def create_job(video: Annotated[UploadFile, File(...)]) -> dict[str, str]:
     output.mkdir(parents=True, exist_ok=False)
     input_path = output / ("input" + suffix)
     input_path.write_bytes(await video.read())
-    job = Job(job_id=job_id, output=output)
+    job = Job(job_id=job_id, output=output, quality=quality)
+    config_path = REPO_ROOT / "configs" / QUALITY_PRESETS[quality]["config"]
     command = [sys.executable, str(REPO_ROOT / "reconstruct.py"), str(input_path),
-               "--output", str(output), "--config", str(REPO_ROOT / "configs" / "low-memory.yml")]
+               "--output", str(output), "--config", str(config_path)]
     job.process = subprocess.Popen(command, cwd=REPO_ROOT, text=True)  # noqa: ASYNC220
     JOBS[job_id] = job
-    return {"id": job_id}
+    return {"id": job_id, "quality": quality}
 
 @app.get("/api/jobs/{job_id}")
 def get_job(job_id: str) -> dict[str, str]:

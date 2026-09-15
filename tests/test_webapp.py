@@ -26,6 +26,15 @@ class WebAppTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
 
+    def test_rejects_unknown_quality_preset(self) -> None:
+        response = self.client.post(
+            "/api/jobs",
+            data={"quality": "ultra"},
+            files={"video": ("room.mov", b"video", "video/quicktime")},
+        )
+
+        self.assertEqual(response.status_code, 400)
+
     def test_starts_cli_for_supported_upload(self) -> None:
         class FakeProcess:
             def poll(self) -> None:
@@ -36,9 +45,12 @@ class WebAppTests(unittest.TestCase):
         ), patch.object(webapp.subprocess, "Popen", return_value=FakeProcess()) as popen:
             response = self.client.post(
                 "/api/jobs",
+            data={"quality": "high"},
                 files={"video": ("room.mov", b"video bytes", "video/quicktime")},
             )
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("id", response.json())
+        self.assertEqual(response.json()["quality"], "high")
+        self.assertTrue(popen.call_args.args[0][-1].endswith("full-quality.yml"))
         popen.assert_called_once()

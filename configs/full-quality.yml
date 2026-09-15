@@ -13,6 +13,6 @@ reconstruction:
   method: splatfacto
   matching_method: sequential
   minimum_registration_rate: 0.5
-  max_num_iterations: null
+  max_num_iterations: 30000
   cache_images: null
   camera_res_scale_factor: null

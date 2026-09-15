@@ -6,7 +6,7 @@ surfaces to remain visible across nearby frames while the camera changes positio
 ## Before recording
 
 - Use the main rear camera at a fixed zoom; avoid ultrawide lens switching.
-- Clean the lens and record at 1080p or higher in steady, even lighting.
+- Clean the lens and record at 4k in steady, even lighting.
 - Open curtains only if the window will not dominate the exposure.
 - Remove moving people, pets, fans, and television content where practical.
 - Plan a continuous walking route around the room rather than rotating in place.

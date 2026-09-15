@@ -8,10 +8,8 @@ pipeline.
 
 Version 1 works end to end on a real phone capture: input validation, frame
 extraction, optional blur filtering, camera-pose recovery, registration checks,
-Gaussian-splat optimization, logs, metadata, viewing, and PLY export. The verified
-baseline registered all 250 frames and produced a 266,201-Gaussian export.
+Gaussian-splat optimization, logs, metadata, viewing, and PLY export. The baseline registered all 250 frames and produced a 266,201-Gaussian export.
 
-The remaining validation work is to repeat the experiment on additional rooms.
 See the [evaluation report](docs/evaluation.md) for measured results and the
 [limitations](#limitations) section for the current boundaries.
 
@@ -82,7 +80,7 @@ python reconstruct.py room.mp4 \
   --config configs/default.yml
 ```
 
-For a faster preview with lower GPU-memory pressure, the low-memory preset uses
+For **Low quality** processing with lower GPU-memory pressure, the low-memory preset uses
 180 frames, 15,000 training iterations, half-resolution training cameras, and
 CPU image caching:
 
@@ -92,7 +90,7 @@ python reconstruct.py room.mp4 \
   --config configs/low-memory.yml
 ```
 
-For a full-quality comparison on a capture that is known to register at 180
+For **High quality** processing on a capture that is known to register at 180
 frames, use the full-quality preset. It keeps the stable 180-frame sampling
 while restoring the default 30,000 iterations and full-resolution training:
 
@@ -133,9 +131,11 @@ python -m pip install -e ".[web]"
 room-reconstruct-web
 ```
 
-Open `http://127.0.0.1:8000`, choose an original-quality `.mov` or `.mp4`, and
-start a reconstruction. The page polls the local job and reports when the
-result is ready. The completed scene can then be opened with the saved
+Open `http://127.0.0.1:8000`, choose an original-quality `.mov` or `.mp4`, select
+the **Low quality** (15,000 iterations, lower memory) or **High quality** (30,000
+iterations, higher memory) preset, and start a reconstruction. The page polls
+the local job and reports when the result is ready. The completed scene can then
+be opened with the saved
 Nerfstudio configuration:
 
 ```bash
