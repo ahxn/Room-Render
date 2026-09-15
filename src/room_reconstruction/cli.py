@@ -8,11 +8,17 @@ from dataclasses import replace
 from pathlib import Path
 
 from .commands import require_command
-from .config import PipelineConfig, load_pipeline_config, validate_config
+from .config import load_pipeline_config, validate_config
 from .environment import check_environment
 from .errors import ReconstructionError
 from .export import export_gaussian_splat
 from .pipeline import find_training_config, run_pipeline
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+QUALITY_CONFIGS = {
+    "low": REPO_ROOT / "configs" / "low-quality.yml",
+    "high": REPO_ROOT / "configs" / "high-quality.yml",
+}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -21,7 +27,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("video", nargs="?", type=Path, help="Path to the input room video")
     parser.add_argument("--output", type=Path, help="Directory for reconstruction artifacts")
-    parser.add_argument("--config", type=Path, help="YAML pipeline configuration file")
+    quality_group = parser.add_mutually_exclusive_group()
+    quality_group.add_argument(
+        "--quality",
+        choices=QUALITY_CONFIGS,
+        help="Processing quality preset (default: low)",
+    )
+    quality_group.add_argument(
+        "--config",
+        type=Path,
+        help="Custom YAML configuration file (advanced)",
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -106,7 +122,8 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(f"Exported Gaussian splat: {exported_path}")
             return 0
-        config = load_pipeline_config(args.config) if args.config else PipelineConfig()
+        config_path = args.config or QUALITY_CONFIGS[args.quality or "low"]
+        config = load_pipeline_config(config_path)
         frame_quality = config.frame_quality
         if args.filter_blurry_frames is not None:
             frame_quality = replace(frame_quality, enabled=args.filter_blurry_frames)

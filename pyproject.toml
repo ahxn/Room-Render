@@ -3,7 +3,7 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "room-reconstruction"
+name = "room-render"
 version = "0.1.0"
 description = "Turn a handheld room video into a Gaussian-splat reconstruction."
 readme = "README.md"
@@ -13,12 +13,20 @@ authors = [{ name = "Allen" }]
 dependencies = ["PyYAML>=6"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.6"]
+dev = [
+  "fastapi>=0.110",
+  "httpx>=0.27",
+  "numpy==1.26.4",
+  "opencv-python-headless==4.9.0.80",
+  "pytest>=8",
+  "python-multipart>=0.0.9",
+  "ruff>=0.6",
+]
 web = ["fastapi>=0.110", "python-multipart>=0.0.9", "uvicorn>=0.29"]
 
 [project.scripts]
-room-reconstruct = "room_reconstruction.cli:main"
-room-reconstruct-web = "room_reconstruction.webapp:main"
+room-render = "room_reconstruction.cli:main"
+room-render-web = "room_reconstruction.webapp:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

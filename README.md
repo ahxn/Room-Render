@@ -1,6 +1,6 @@
-# Room Reconstruction
+# Room Render
 
-Room Reconstruction converts a handheld room video into an interactive 3D
+Room Render converts a handheld room video into an interactive 3D
 Gaussian-splat scene using FFmpeg, OpenCV, COLMAP, Nerfstudio, and PyTorch/CUDA.
 
 ## How it works
@@ -37,15 +37,26 @@ The verified run used:
 Other CUDA-capable NVIDIA GPUs should work with compatible PyTorch and
 Nerfstudio versions.
 
+Create the tested WSL environment with:
+
+```bash
+bash scripts/setup_wsl.sh
+```
+
+The setup script targets CUDA architecture `86` by default. Set
+`TCNN_CUDA_ARCHITECTURES` before running it when using a different GPU.
+
 ## CLI quick start
 
 ```bash
 conda activate nerfstudio
-python -m pip install -e ".[dev]"
-python reconstruct.py room.mp4 --output "$HOME/results/living-room"
+python -m pip install -e ".[dev,web]"
+python reconstruct.py room.mp4 \
+  --output "$HOME/results/living-room" \
+  --quality low
 ```
 
-Preview the planned commands without GPU work:
+Inspect the planned commands without GPU work:
 
 ```bash
 python reconstruct.py room.mp4 \
@@ -66,7 +77,7 @@ Low quality uses 15,000 iterations with lower memory use:
 ```bash
 python reconstruct.py room.mp4 \
   --output "$HOME/results/living-room-low" \
-  --config configs/low-memory.yml
+  --quality low
 ```
 
 High quality uses 30,000 iterations and full-resolution training:
@@ -74,7 +85,7 @@ High quality uses 30,000 iterations and full-resolution training:
 ```bash
 python reconstruct.py room.mp4 \
   --output "$HOME/results/living-room-high" \
-  --config configs/full-quality.yml
+  --quality high
 ```
 
 ## Local web interface
@@ -84,12 +95,18 @@ GPU. It is not a hosted service.
 
 ```bash
 python -m pip install -e ".[web]"
-room-reconstruct-web
+room-render-web
 ```
 
 Open `http://127.0.0.1:8000`, upload a video, and choose **Low quality** or
 **High quality**. The resulting scene can be opened with the CLI command shown
 by the page.
+
+## Validation
+
+The pipeline registered 250/250 frames on Room 1 and 180/180 frames on Room 2.
+A third capture registered only 2/180 frames and was safely rejected before GPU
+training, confirming that the registration quality gate works.
 
 ## Outputs
 
@@ -116,4 +133,3 @@ The output is a viewable Gaussian splat rather than a CAD or measurement-grade
 mesh.
 
 The public [`docs/`](docs/) directory contains the architecture and capture guide.
-Evaluation history and demo notes are maintained in the project’s Notion page.

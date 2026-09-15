@@ -1,9 +1,10 @@
-"""Local browser interface for the room-reconstruction CLI."""
+"""Local browser interface for Room Render."""
 from __future__ import annotations
 
 import json
 import os
 import secrets
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -21,15 +22,15 @@ QUALITY_PRESETS = {
     "low": {
         "label": "Low quality (15,000 iterations)",
         "description": "Faster processing with lower GPU-memory pressure.",
-        "config": "low-memory.yml",
+        "config": "low-quality.yml",
     },
     "high": {
         "label": "High quality (30,000 iterations)",
         "description": "Higher-resolution training for the final reconstruction.",
-        "config": "full-quality.yml",
+        "config": "high-quality.yml",
     },
 }
-RESULTS_ROOT = Path(os.environ.get("ROOM_RECONSTRUCTION_RESULTS", "/home/allen/results"))
+RESULTS_ROOT = Path(os.environ.get("ROOM_RENDER_RESULTS", Path.home() / "results"))
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 @dataclass
@@ -92,7 +93,7 @@ def _status(job: Job) -> dict[str, str]:
     return {"id": job.job_id, "status": state, "message": message}
 
 @app.post("/api/jobs")
-async def create_job(
+def create_job(
     video: Annotated[UploadFile, File(...)],
     quality: Annotated[str, Form()] = "low",
 ) -> dict[str, str]:
@@ -105,12 +106,13 @@ async def create_job(
     output = RESULTS_ROOT / ("web-" + job_id)
     output.mkdir(parents=True, exist_ok=False)
     input_path = output / ("input" + suffix)
-    input_path.write_bytes(await video.read())
+    with input_path.open("wb") as destination:
+        shutil.copyfileobj(video.file, destination)
     job = Job(job_id=job_id, output=output, quality=quality)
     config_path = REPO_ROOT / "configs" / QUALITY_PRESETS[quality]["config"]
     command = [sys.executable, str(REPO_ROOT / "reconstruct.py"), str(input_path),
                "--output", str(output), "--config", str(config_path)]
-    job.process = subprocess.Popen(command, cwd=REPO_ROOT, text=True)  # noqa: ASYNC220
+    job.process = subprocess.Popen(command, cwd=REPO_ROOT, text=True)
     JOBS[job_id] = job
     return {"id": job_id, "quality": quality}
 

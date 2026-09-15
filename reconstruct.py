@@ -1,4 +1,4 @@
-"""Repository-local entry point for the room reconstruction CLI."""
+"""Repository-local entry point for the Room Render CLI."""
 
 import sys
 from importlib import import_module

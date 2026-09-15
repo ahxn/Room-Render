@@ -45,12 +45,12 @@ class WebAppTests(unittest.TestCase):
         ), patch.object(webapp.subprocess, "Popen", return_value=FakeProcess()) as popen:
             response = self.client.post(
                 "/api/jobs",
-            data={"quality": "high"},
+                data={"quality": "high"},
                 files={"video": ("room.mov", b"video bytes", "video/quicktime")},
             )
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("id", response.json())
         self.assertEqual(response.json()["quality"], "high")
-        self.assertTrue(popen.call_args.args[0][-1].endswith("full-quality.yml"))
+        self.assertTrue(popen.call_args.args[0][-1].endswith("high-quality.yml"))
         popen.assert_called_once()

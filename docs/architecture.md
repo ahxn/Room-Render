@@ -1,6 +1,6 @@
 # Architecture
 
-Room Reconstruction is a Python orchestration layer around established
+Room Render is a Python orchestration layer around established
 computer-vision tools. It validates inputs, runs each stage, checks outputs,
 records metadata, and stops unsafe runs before GPU training.
 

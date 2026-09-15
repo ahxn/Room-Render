@@ -31,7 +31,7 @@ conda run --name "$ENVIRONMENT_NAME" python -m pip install \
 # verified WSL environment. Keep the known-good runtime without altering deps.
 conda run --name "$ENVIRONMENT_NAME" python -m pip install \
   --force-reinstall --no-cache-dir --no-deps opencv-python-headless==4.9.0.80
-conda run --name "$ENVIRONMENT_NAME" python -m pip install -e "${REPO_ROOT}[dev]"
+conda run --name "$ENVIRONMENT_NAME" python -m pip install -e "${REPO_ROOT}[dev,web]"
 
 export TCNN_CUDA_ARCHITECTURES="$CUDA_ARCHITECTURE"
 export MAX_JOBS="${MAX_JOBS:-2}"
